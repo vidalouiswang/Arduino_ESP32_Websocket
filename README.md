@@ -1,4 +1,7 @@
 # Arduino ESP32 Websocket
+
+[中文](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/README_CN.md)
+
 This lib work with Espressif offical framework esp32-arduino, version 1.0.6.
 Only had tested on esp32 dev module. I'm not sure it support ESP8266 or not.
 In my opinion, ESP32-WROOM-32(module) and ESP8266-12F(module) have almost same price but ESP32 is much powerful.
