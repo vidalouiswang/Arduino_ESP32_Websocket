@@ -36,7 +36,7 @@ Currently work with 1.0.6 of the [offical framework](https://github.com/espressi
 ### Note
 When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little bit, that's not a memory leak, for deeper reason, you should search "lwip memory leak" in google.
 
-For more config, look into "mywebsocket.h".
+For more config, look into ["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h).
 
 # License
 (GNU General Public License v3.0 License)
