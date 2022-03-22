@@ -80,7 +80,7 @@ namespace myWebSocket
         bool handShake();
         String domain;
         WebSocketMessageCallback fn;
-        WiFiClient *client;
+        WiFiClient *client = nullptr;
 
         uint8_t *accBuffer = nullptr;
         uint64_t accBufferOffset = 0;
