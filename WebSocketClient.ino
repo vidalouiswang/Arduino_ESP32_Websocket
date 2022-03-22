@@ -24,7 +24,7 @@ void setup()
             {
 
                 Serial.println("Websocket connected.");
-                Serial.println("long msg will be send to server in 1000 second.");
+                Serial.println("long msg will be send to server in 1000 seconds.");
                 yield();
                 delay(1000);
                 yield();
@@ -60,6 +60,10 @@ void setup()
     Serial.println("Connecting to websocket server...");
 
     client.connect("ws://abc.com", 8080, "/");
+    
+    //you could change interval to reconnect to server after the connection lost
+    //automatically reconnect is enabled default
+    client.setAutoReconnect(true, 5000);
 
     // you have different ways to connect to server
     // client.connect("abc.com", 8080, "/");
