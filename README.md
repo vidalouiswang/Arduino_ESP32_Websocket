@@ -22,7 +22,7 @@ You could start from the examples.
 ### No memory leak
 Client and server had been fully tested for hours, send and receive large data(16 KB text and binary, random bytes every time, use sha256 to test data) periodicly one second, echo to each other(not included in examples, example only have normal light-weight test).
 
-### Easily handle http request and websocket request when act a server.
+### Easily handle http request and websocket request when act a server
 One line code to start a server to handle http and websocket request. 
 
 ### Stable
