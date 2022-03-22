@@ -59,7 +59,7 @@ void setup()
 
     Serial.println("Connecting to websocket server...");
 
-    client.connect("ws://abc.com", 8080, "/");
+    client.connect("abc.com", 8080, "/");
     
     //you could change interval to reconnect to server after the connection lost
     //automatically reconnect is enabled default
