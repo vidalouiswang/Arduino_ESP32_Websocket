@@ -9,7 +9,7 @@ But connecting speed of the first one it will take 1700 ~ 1900 ms, it should be 
 
 Another one has memory leak when act a server(I try to fix it but couldn't find reason).
 
-This lib doesn't support wss://. Cause I think use AES to encrypted data before send it is much better(of course you need both user have same key), that depends on your design.
+This lib doesn't support wss://. Because I think use AES(or other encryption) to encrypt data before send it is much better(of course you need both user have same key), that depends on your design.
 
 # Characteristic of this this project:
 
@@ -28,7 +28,7 @@ One line code to start a server to handle http and websocket request.
 ### Stable
 Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error(complex code environment, test more than 10000 times, use sha256 to test data).
 
-Currently work with 1.0.6 of the offical framework.
+Currently work with 1.0.6 of the [offical framework](https://github.com/espressif/arduino-esp32/releases/tag/1.0.6/).
 
 # License
 (GNU General Public License v3.0 License)
