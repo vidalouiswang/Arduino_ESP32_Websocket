@@ -8,7 +8,7 @@ In my opinion, ESP32-WROOM-32(module) and ESP8266-12F(module) have almost same p
 
 Before I made this lib, I had used another two libs you could find on github(most stars) for days, they both did very good job.
 
-But connecting speed of the first one it will take 1700 ~ 1900 ms, it should be 90 ~ 110 ms(test at same time to same server).
+But connecting speed of the first one it will take 1700 ~ 1900 ms(handshake), it should be 90 ~ 110 ms(test at same time to same server).
 
 Another one has memory leak when act a server(I try to fix it but couldn't find reason).
 
