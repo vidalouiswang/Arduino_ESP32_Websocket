@@ -11,7 +11,7 @@ Another one has memory leak when act a server(I try to fix it but couldn't find 
 
 This lib doesn't support wss://. Because I think use AES(or other encryption) to encrypt data before send it is much better(of course you need both user have same key), that depends on your design.
 
-# Characteristic of this this project:
+# Characteristic of this this project
 
 ### High speed
 Connecting and data transfering.
