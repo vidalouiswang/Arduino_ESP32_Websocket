@@ -4,7 +4,7 @@ Only had tested on esp32 dev module. I'm not sure if support ESP8266.
 
 Before I made this lib, I had used another two libs you could find on github for days, they both did very good job.
 But connecting speed of the first one it will take 1700 ~ 1900 ms, it should be 90 ~ 110 ms.
-Another one has memory leak when act a server.
+Another one has memory leak when act a server(I try to fix it but couldn't find reason).
 
 This lib doesn't support wss://. Cause I think use AES to encrypted data before send it is much better(of course you need both user have same key), that depends on your design.
 
