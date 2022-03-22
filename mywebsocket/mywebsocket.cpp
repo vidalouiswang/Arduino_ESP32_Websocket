@@ -24,7 +24,7 @@ namespace myWebSocket
         this->domain = String(this->host + ":" + String(this->port));
 
         // replace host and path
-        wsHeader.replace("@HOST@", domain);
+        wsHeader.replace("@HOST@", this->domain);
         wsHeader.replace("@PATH@", this->path);
 
         // generate key
