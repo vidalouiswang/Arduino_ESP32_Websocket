@@ -24,3 +24,5 @@ One line code to start a server to handle http and websocket request.
 
 ### Stable
 Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error.
+
+Currently work with 1.0.6 of offical framework.
