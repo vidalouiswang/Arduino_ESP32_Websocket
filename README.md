@@ -31,7 +31,7 @@ Easily transfer 64KB binary data in AP and STA mode with very low time time cons
 Currently work with 1.0.6 of the [offical framework](https://github.com/espressif/arduino-esp32/releases/tag/1.0.6/).
 
 ### Note
-When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little, that's not a memory leak, for deeper you should search "lwip memory leak" in google.
+When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little bit, that's not a memory leak, for deeper you should search "lwip memory leak" in google.
 
 # License
 (GNU General Public License v3.0 License)
