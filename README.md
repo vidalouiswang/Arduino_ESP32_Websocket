@@ -2,7 +2,7 @@
 This lib work with Espressif offical framework esp32-arduino, version 1.0.6.
 Only had tested on esp32 dev module. I'm not sure if support ESP8266.
 
-Before I made this lib, I used another two lib on github, they both did very good job.
+Before I made this lib, I used another two libs on github, they both did very good job.
 But connecting speed of the first one it will take 1700 ~ 1900 ms, it should be 90 ~ 110 ms.
 Another one has memory leak when act a server.
 
