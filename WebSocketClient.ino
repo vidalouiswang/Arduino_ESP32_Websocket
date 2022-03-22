@@ -4,6 +4,8 @@
 
 myWebSocket::WebSocketClient client;
 
+u32_t t = 0;
+
 void setup()
 {
     Serial.begin(115200);
@@ -23,7 +25,7 @@ void setup()
             if (type == myWebSocket::WS_CONNECTED)
             {
 
-                Serial.println("Websocket connected.");
+                Serial.println("Websocket connected. Time: " + String(millis() - t));
                 Serial.println("long msg will be send to server in 1000 seconds.");
                 yield();
                 delay(1000);
@@ -59,10 +61,15 @@ void setup()
 
     Serial.println("Connecting to websocket server...");
 
-    client.connect("abc.com", 8080, "/");
-    
-    //you could change interval to reconnect to server after the connection lost
-    //automatically reconnect is enabled default
+    //record connect timestamp
+    t = millis();
+
+    //connect
+    client.connect("abc.com", 80, "/");
+
+    //you could set interval after connection lost
+    //auto connect is true by default
+    //timeout is 5000ms
     client.setAutoReconnect(true, 5000);
 
     // you have different ways to connect to server
