@@ -26,3 +26,12 @@ One line code to start a server to handle http and websocket request.
 Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error.
 
 Currently work with 1.0.6 of offical framework.
+
+# License
+(GNU General Public License v3.0 License)
+
+Copyright 2022, Vida Wang  <github@vida.wang>
+
+
+Children are the future of mankind, but there are still many children who are enduring hunger all over the world at this moment. If you are a good person and you like this lib, please donate to UNICEF.
+https://unicef.org
