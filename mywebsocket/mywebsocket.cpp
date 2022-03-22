@@ -96,7 +96,6 @@ namespace myWebSocket
 
     bool WebSocketClient::handShake()
     {
-        // this->socket.stop();
         this->client = new WiFiClient();
         String header = generateHanshake();
         String serverKey = this->clientKey + String("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
@@ -121,7 +120,6 @@ namespace myWebSocket
 
             uint64_t wroteLen = this->client->print(header);
             this->client->flush();
-
 
             if (wroteLen != header.length())
             {
@@ -297,6 +295,13 @@ namespace myWebSocket
     {
         if (this->status == WS_CONNECTED)
         {
+            if (!this->client->connected())
+            {
+                this->client->stop();
+                this->status = WS_DISCONNECTED;
+                this->fn(WS_DISCONNECTED, nullptr, 0);
+                return;
+            }
             uint64_t len = this->client->read(this->buffer, 2);
 
             if (!len) // no msg
@@ -503,12 +508,18 @@ namespace myWebSocket
             delete buf;
         }
         else
-        { // WS_DISCONNECTED
+        { // disconnected
             if (this->autoReconnect)
             {
                 if (millis() - this->lastConnectTime > this->connectTimeout)
                 {
                     this->lastConnectTime = millis();
+                    if (this->client != nullptr)
+                    {
+                        this->client->stop();
+                        delete this->client;
+                        this->client = nullptr;
+                    }
                     this->handShake();
                 }
             }
