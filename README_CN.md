@@ -34,6 +34,7 @@ AP模式和STA模式都可以轻松的传输64KB的二进制数据，处理速�
 使用客户端的时候，你可以尝试制造断开连接，比如让服务器下线，重复多次后你会发现每次堆内存都会少一点，大概100字节，超过10次以上这个数据就不会减少了，这个不是内存泄漏，有关这个问题你可以取google搜索"lwip memory leak"，有个帖子里面讲了这个问题的原因。
 
 其他的配置你可以在头文件["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h)中找到。
+缓存定义的都比较大，因为ESP32堆内存实在是很大，如果你觉得太大你可以自己调小一点。
 
 # 协议
 (GNU General Public License v3.0 License)
