@@ -69,7 +69,7 @@ void setup()
                     note:
                     no recommended to use this method, unless it's necessary
                     otherwise you may forget to delete buffer but 
-                    client.setRecvBufferDeleted() was call
+                    client.setRecvBufferDeleted() was called
                     that will cause memory leak
                 */
             }
