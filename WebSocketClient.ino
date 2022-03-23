@@ -52,6 +52,26 @@ void setup()
             else if (type == myWebSocket::TYPE_BIN)
             {
                 Serial.println("Got binary, length:" + String((long)length));
+                 /*
+                    if you'd like to malloc or new a heap space to send data
+                    but current heap isn't big enough for that
+                    you could do this:
+
+                    delete payload;
+                    client.setRecvBufferDeleted();
+
+                    that will clear received buffer immediately
+
+                    actually, this process could use ** to instead
+                    but that may confused new hand
+                    so class use a bool and a function to did this
+
+                    note:
+                    no recommended to use this method, unless it's necessary
+                    otherwise you may forget to delete buffer but 
+                    client.setRecvBufferDeleted() was call
+                    that will cause memory leak
+                */
             }
             else
             {
