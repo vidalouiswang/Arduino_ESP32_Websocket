@@ -91,6 +91,8 @@ namespace myWebSocket
 
         bool autoReconnect = true;
 
+        bool isRecvBufferHasBeenDeleted = false;
+
         // to store last reconnect time
         uint64_t lastConnectTime = 0;
 
@@ -164,6 +166,8 @@ namespace myWebSocket
         }
 
         void loop();
+
+        inline void setRecvBufferDeleted() { this->isRecvBufferHasBeenDeleted = true; }
 
         uint64_t send(String *data);
 
