@@ -422,7 +422,14 @@ namespace myWebSocket
                 return;
             }
 
-            buf = new uint8_t[bufferLength];
+            buf = new (std::nothrow) uint8_t[bufferLength];
+
+            if (buf == nullptr)
+            {
+                this->status = MEMORY_FULL;
+                this->fn(MEMORY_FULL, nullptr, 0);
+                return;
+            }
 
             // if this client is transfer from server
             // that means 4 bytes mask key should read at first
@@ -505,7 +512,17 @@ namespace myWebSocket
                 {
                     if (!this->accBufferOffset)
                     {
-                        this->accBuffer = new uint8_t[MY_WEBSOCKET_CLIENT_MAX_PAYLOAD_LENGTH];
+                        this->accBuffer = new (std::nothrow) uint8_t[MY_WEBSOCKET_CLIENT_MAX_PAYLOAD_LENGTH];
+                        if (this->accBuffer == nullptr)
+                        {
+                            this->status = MEMORY_FULL;
+                            if (buf != nullptr)
+                            {
+                                delete buf;
+                            }
+                            this->fn(MEMORY_FULL, nullptr, 0);
+                            return;
+                        }
                     }
                     memcpy(this->accBuffer + this->accBufferOffset, buf, length);
                     this->accBufferOffset += length;
