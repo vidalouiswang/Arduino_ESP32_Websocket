@@ -194,7 +194,16 @@ namespace myWebSocket
     uint64_t WebSocketClient::send(const char *data)
     {
         WebSocketEvents type = TYPE_TEXT;
-        return this->_send(type, (uint8_t *)data, strlen(data));
+        uint64_t len = strlen(data);
+        uint8_t *d = (uint8_t *)malloc(len);
+        if (!d)
+        {
+            return 0;
+        }
+        memcpy(d, data, len);
+        uint64_t r = this->_send(type, d, strlen(data));
+        free(d);
+        return r;
     }
 
     uint64_t WebSocketClient::send(uint8_t *data, uint64_t len)
