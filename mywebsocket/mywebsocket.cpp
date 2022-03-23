@@ -360,6 +360,9 @@ namespace myWebSocket
                 return;
             }
             uint64_t length = (uint64_t)(this->buffer[1] & (uint8_t)(127));
+
+            this->isRecvBufferHasBeenDeleted = false;
+
             uint8_t *buf = nullptr;
             uint8_t maskBytes[4];
 
@@ -514,7 +517,11 @@ namespace myWebSocket
                 this->status = WebSocketEvents::TCP_ERROR;
                 this->fn(TCP_ERROR, nullptr, 0);
             }
-            delete buf;
+
+            if (!this->isRecvBufferHasBeenDeleted)
+            {
+                delete buf;
+            }
         }
         else
         { // disconnected
