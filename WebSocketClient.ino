@@ -62,7 +62,7 @@ void setup()
 
                     that will clear received buffer immediately
 
-                    actually, this process could use ** to instead
+                    actually, this process could use transfer **payload to instead
                     but that may confused new hand
                     so class use a bool and a function to did this
 
