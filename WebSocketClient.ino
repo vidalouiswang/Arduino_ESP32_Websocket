@@ -26,7 +26,7 @@ void setup()
             {
 
                 Serial.println("Websocket connected. Time: " + String(millis() - t));
-                Serial.println("long msg will be send to server in 1000 seconds.");
+                Serial.println("long msg will be send to server in 1000 ms.");
                 yield();
                 delay(1000);
                 yield();
