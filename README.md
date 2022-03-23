@@ -19,7 +19,7 @@ This lib doesn't support wss://. Because I think use AES(or other encryption) to
 ### High speed
 Connecting and data transfering.
 
-Same connect speed as a browser "new Websocket()" client(to my remote server, it is 98ms).
+Same connect speed as a browser "new Websocket()" client in Chrome(to my remote server, it is 98ms).
 
 ### Easy to use
 You could start from the examples.
