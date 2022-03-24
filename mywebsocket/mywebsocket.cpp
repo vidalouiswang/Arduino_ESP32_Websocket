@@ -465,9 +465,10 @@ namespace myWebSocket
             {
                 if (this->isFromServer)
                 {
-                    // unmask
-                    uint64_t t = micros();
 
+                    uint64_t t = micros();
+                    
+                    // unmask
                     // this will consume 2200us if length type is uint64_t with 240MHz cpu config
                     // data size 64KB, AP mode
                     // this is for transfer large binary data from client to server
