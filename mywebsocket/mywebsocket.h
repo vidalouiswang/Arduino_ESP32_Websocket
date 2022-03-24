@@ -75,6 +75,7 @@ namespace myWebSocket
     {
     private:
         String host;
+        int id = -1;
         uint16_t port;
         String path; // currently only support "/"
         bool handShake();
@@ -169,6 +170,10 @@ namespace myWebSocket
 
         inline void setRecvBufferDeleted() { this->isRecvBufferHasBeenDeleted = true; }
 
+        inline void setID(uint8_t id) { this->id = id; }
+
+        inline int getID() { return this->id; }
+
         uint64_t send(String *data);
 
         uint64_t send(String data);
@@ -186,6 +191,141 @@ namespace myWebSocket
         {
             this->autoReconnect = autoReconnect;
             this->connectTimeout = timeout;
+        }
+    };
+
+    typedef std::function<void(WebSocketClient *client, WebSocketEvents type, uint8_t *payload, uint64_t length)> WebSocketClientsCallback;
+
+    class WebSocketClients
+    {
+    private:
+        WebSocketClientsCallback fn = nullptr;
+        WebSocketClient *clients[MAX_CLIENTS] = {nullptr};
+
+        inline bool queue(WebSocketClient *client)
+        {
+            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (this->clients[i] == nullptr)
+                {
+                    this->clients[i] = client;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        inline WebSocketClient *create()
+        {
+            WebSocketClient *client = new WebSocketClient();
+            client->setCallBack(
+                [this, client](WebSocketEvents type, uint8_t *payload, uint64_t length)
+                {
+                    this->fn(client, type, payload, length);
+                });
+            if (!queue(client))
+            {
+                delete client;
+                return nullptr;
+            }
+            return client;
+        }
+
+    public:
+        inline WebSocketClients() {}
+        inline WebSocketClients(WebSocketClientsCallback fn) : fn(fn) {}
+        inline void setCallBack(WebSocketClientsCallback fn) { this->fn = fn; }
+        inline bool connect(String host, uint16_t port = 80, String path = "/", WebSocketClient *client = nullptr)
+        {
+            client = create();
+            if (!client)
+                return false;
+            return client->connect(host, port, path);
+        }
+
+        inline bool connect(String url, bool withHeader = false, WebSocketClient *client = nullptr)
+        {
+            client = create();
+            if (!client)
+                return false;
+            return client->connect(url, withHeader);
+        }
+
+        inline bool connect(const char *url, bool withHeader = false, WebSocketClient *client = nullptr)
+        {
+            client = create();
+            if (!client)
+                return false;
+            return client->connect(url, withHeader);
+        }
+
+        inline bool connect(const char *host, uint16_t port, const char *path, WebSocketClient *client = nullptr)
+        {
+            client = create();
+            if (!client)
+                return false;
+            return client->connect(String(host), port, String(path));
+        }
+
+        inline void loop()
+        {
+            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (this->clients[i] != nullptr)
+                {
+                    this->clients[i]->loop();
+                }
+            }
+        }
+
+        inline WebSocketClient *findByID(uint8_t id)
+        {
+            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (this->clients[i] != nullptr)
+                {
+                    if (this->clients[i]->getID() == id)
+                    {
+                        return this->clients[i];
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        inline bool disconnectAndRemove(WebSocketClient *client)
+        {
+            if (!client)
+                return false;
+            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (this->clients[i] == client)
+                {
+                    this->clients[i]->stop();
+                    delete this->clients[i];
+                    this->clients[i] = nullptr;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        inline bool disconnectAndRemove(uint8_t id)
+        {
+            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (this->clients[i] != nullptr)
+                {
+                    if (this->clients[i]->getID() == id)
+                    {
+                        this->clients[i]->stop();
+                        delete this->clients[i];
+                        this->clients[i] = nullptr;
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     };
 
