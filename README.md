@@ -28,7 +28,7 @@ You could start from the examples.
 Client and server had been fully tested for days, send and receive large data(16 KB text and binary, random bytes every time, use sha256 to test data) periodicly one second, echo to each other(not included in examples, example only have normal light-weight test).
 
 ### Easily handle http request and websocket request when act a server
-One line code to start a server to handle http and websocket request. 
+One line code to start a server to handle http and websocket requests. 
 
 ### Stable
 Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error(complex code environment, test more than 10000 times, use sha256 to verify data).
@@ -36,7 +36,7 @@ Easily transfer 64KB binary data in AP and STA mode with very low time time cons
 ### Note
 When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little bit, that's not a memory leak, for deeper reason, you should search "lwip memory leak" in google.
 
-For more config, look into ["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h).
+For more configs, look into ["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h).
 
 The default cache size is large, because heap of ESP32 is huge, you could reduce a little bit if you want.
 
