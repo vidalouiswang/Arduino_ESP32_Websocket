@@ -17,6 +17,10 @@ void setup()
     //   delay(100);
     //   yield();
     // }
+
+    //call this to enable ESP32 hardware acceleration
+    mycrypto::SHA::initialize();
+    
     WiFi.softAP("ESP32_WebSocketServer");
     delay(300);
     WiFi.softAPConfig(APIP, APIP, subnet);

@@ -6,6 +6,10 @@ myWebSocket::WebSocketClients clients;
 
 void setup()
 {
+
+    // call this to enable ESP32 hardware acceleration
+    mycrypto::SHA::initialize();
+
     Serial.begin(115200);
 
     Serial.println("Connecting to WiFi...");
@@ -41,7 +45,7 @@ void setup()
             {
                 Serial.println("Got binary, length:" + String((long)length));
                 /*
-                    if you need to send large data 
+                    if you need to send large data
                     but current free heap is not enough
                     use bellow:
 
@@ -52,10 +56,10 @@ void setup()
                     actually, this process could use transfer **payload to instead
                     but that may confused new hand
                     so class use a bool and a function to did this
-                    
+
                     note:
                     no recommended to use this method, unless it's necessary
-                    otherwise you may forget to delete buffer but 
+                    otherwise you may forget to delete buffer but
                     client.setRecvBufferDeleted() was called
                     that will cause memory leak
                 */

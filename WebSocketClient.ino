@@ -8,6 +8,9 @@ u32_t t = 0;
 
 void setup()
 {
+    //call this to enable ESP32 hardware acceleration
+    mycrypto::SHA::initialize();
+
     Serial.begin(115200);
     WiFi.begin("SSID", "password");
     while (WiFi.status() != WL_CONNECTED)

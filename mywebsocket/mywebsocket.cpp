@@ -2,17 +2,13 @@
 
 namespace myWebSocket
 {
+
     String generateServerKey(String clientKey)
     {
-        unsigned char inputServerKey[clientKey.length()];
-        for (int i = 0; i < clientKey.length(); i++)
-            inputServerKey[i] = (unsigned char)clientKey.charAt(i);
-        int l = 20;
-        unsigned char output[l];
-
-        esp_sha(SHA1, inputServerKey, clientKey.length(), output);
-        clientKey = base64().encode(output, l);
-        return clientKey;
+        int shaLen = 20;
+        char *output[shaLen];
+        mycrypto::SHA::sha1((uint8_t *)clientKey.c_str(), clientKey.length(), (uint8_t *)output);
+        return mycrypto::Base64::base64Encode((const char *)output, shaLen);
     }
 
     String WebSocketClient::generateHanshake()
@@ -33,9 +29,12 @@ namespace myWebSocket
             key[i] = random(0xFF);
 
         // hash
-        unsigned char output[20];
-        esp_sha(SHA1, key, 16, output);
-        this->clientKey = base64().encode(output, 16);
+        uint8_t output[20];
+        mycrypto::SHA::sha1(key, 16, output);
+
+        char *a = mycrypto::Base64::base64Encode(output, 16);
+        this->clientKey = String(a);
+        delete a;
 
         wsHeader.replace("@KEY@", this->clientKey);
         return wsHeader;
@@ -105,7 +104,7 @@ namespace myWebSocket
         if (!this->client->connect(this->host.c_str(), this->port))
         {
             this->status = TCP_FAILED;
-            this->fn(WS_DISCONNECTED, nullptr, 0);
+            this->fn(TCP_FAILED, nullptr, 0);
             return false;
         }
         else
@@ -159,7 +158,7 @@ namespace myWebSocket
                     {
                         this->client->stop();
                         this->status = HANDSHAKE_UNKNOWN_ERROR;
-                        this->fn(WS_DISCONNECTED, nullptr, 0);
+                        this->fn(HANDSHAKE_UNKNOWN_ERROR, nullptr, 0);
                         return false;
                     }
                 }
@@ -466,8 +465,6 @@ namespace myWebSocket
                 if (this->isFromServer)
                 {
 
-                    uint64_t t = micros();
-                    
                     // unmask
                     // this will consume 2200us if length type is uint64_t with 240MHz cpu config
                     // data size 64KB, AP mode
@@ -481,8 +478,6 @@ namespace myWebSocket
                     }
 
                     memset(buf + length, 0, bufferLength - length);
-
-                    ESP_LOGI("mainloop", "unmask time:%d us", (long)(micros() - t));
                 }
 
                 if (type == TYPE_TEXT && isThisFrameisFin)

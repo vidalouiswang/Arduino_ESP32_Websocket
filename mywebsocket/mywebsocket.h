@@ -16,10 +16,9 @@
 
 #include <Arduino.h>
 #include <WifiClient.h>
-#include <base64.h>
 #include <vector>
 #include <functional>
-#include <hwcrypto/sha.h> //this is only for esp32-arudino 1.0.6
+#include "../mycrypto/mycrypto.h"
 #include <WiFiServer.h>
 
 #define myWebSocketHeader "GET @PATH@ HTTP/1.1\r\nHost: @HOST@\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nCache-Control: no-cache\r\nUpgrade: websocket\r\nSec-WebSocket-Key: @KEY@\r\n\r\n"
@@ -53,7 +52,7 @@ namespace myWebSocket
         TCP_TIMEOUT = 0xfd,
         TCP_FAILED = 0xfc,
         WS_CONNECTED = 0xfb,
-        WS_DISCONNECTED = 0xf9,
+        WS_DISCONNECTED = 0xa8,
         TCP_ERROR = 0xf8,
         HANDSHAKE_UNKNOWN_ERROR = 0xf7,
         MAX_PAYLOAD_EXCEED = 0xf6,
