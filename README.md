@@ -31,7 +31,7 @@ Client and server had been fully tested for days, send and receive large data(16
 One line code to start a server to handle http and websocket request. 
 
 ### Stable
-Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error(complex code environment, test more than 10000 times, use sha256 to test data).
+Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error(complex code environment, test more than 10000 times, use sha256 to verify data).
 
 ### Note
 When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little bit, that's not a memory leak, for deeper reason, you should search "lwip memory leak" in google.
