@@ -2,7 +2,7 @@
 
 [中文](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/README_CN.md)
 
-This lib work with Espressif offical framework esp32-arduino, version 1.0.6.
+This lib work with Espressif offical framework esp32-arduino.
 Only had tested on esp32 dev module. I'm not sure it support ESP8266 or not.
 In my opinion, ESP32-WROOM-32(module) and ESP8266-12F(module) have almost same price but ESP32 is much powerful.
 
@@ -32,8 +32,6 @@ One line code to start a server to handle http and websocket request.
 
 ### Stable
 Easily transfer 64KB binary data in AP and STA mode with very low time time consumption and zero error(complex code environment, test more than 10000 times, use sha256 to test data).
-
-Currently work with 1.0.6 of the [offical framework](https://github.com/espressif/arduino-esp32/releases/tag/1.0.6/).
 
 ### Note
 When you test the client, every time after connection lost and reconnected again, you will find heap memory will reduce a little bit, that's not a memory leak, for deeper reason, you should search "lwip memory leak" in google.
