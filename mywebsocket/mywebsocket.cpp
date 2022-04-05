@@ -469,7 +469,7 @@ namespace myWebSocket
                     // this will consume 2200us if length type is uint64_t with 240MHz cpu config
                     // data size 64KB, AP mode
                     // this is for transfer large binary data from client to server
-                    for (uint64_t i = 0; i ^ length; i += 4)
+                    for (uint64_t i = 0; i ^ bufferLength; i += 4)
                     {
                         buf[i] = buf[i] ^ maskBytes[i & 3];
                         buf[(i + 1)] = buf[(i + 1)] ^ maskBytes[(i + 1) & 3];
