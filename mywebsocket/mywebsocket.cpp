@@ -403,13 +403,9 @@ namespace myWebSocket
             {
                 bufferLength += 1;
             }
-            ESP_LOGI("mainloop", "original length:%d", bufferLength);
 
             // for optimize unmask
-            while (bufferLength % 4)
-            {
-                bufferLength++;
-            }
+            bufferLength += 4 - (bufferLength % 4);
             ESP_LOGI("mainloop", "optimized length:%d", bufferLength);
 
             // if length overflow it will be 0(though it won't happen forever on esp32)
