@@ -359,6 +359,8 @@ void setup()
             client->close();
         });
     server.begin(80);
+
+    Serial.println("Connect to AP, and open \"192.168.8.1\"");
 }
 
 void loop()
