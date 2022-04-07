@@ -23,6 +23,8 @@
 
 #define myWebSocketHeader "GET @PATH@ HTTP/1.1\r\nHost: @HOST@\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nCache-Control: no-cache\r\nUpgrade: websocket\r\nSec-WebSocket-Key: @KEY@\r\n\r\n"
 
+#define DEBUG_MYCRYPTO 1
+
 #define READ_MAX_TIMES 100
 
 // payload length
@@ -35,14 +37,14 @@
 #define MY_WEBSOCKET_HTTP_POST_LENGTH 1024
 
 // http header length
-#define MY_WEBSOCKET_HTTP_MAX_HEADER_LENGTH 1024
+#define MY_WEBSOCKET_MAX_HEADER_LENGTH 1024
 
 // client length
 #define MAX_CLIENTS 10
 
 namespace myWebSocket
 {
-
+    static const char *debugHeader = "mywebsocket";
     // to calc server key
     String generateServerKey(String clientKey);
 
@@ -57,6 +59,7 @@ namespace myWebSocket
         HANDSHAKE_UNKNOWN_ERROR = 0xf7,
         MAX_PAYLOAD_EXCEED = 0xf6,
         MEMORY_FULL = 0xf5,
+        MAX_HEADER_LENGTH_EXCEED = 0xf4,
         REACH_MAX_READ_TIMES = 0xae,
         TYPE_CON = 0x00,
         TYPE_TEXT = 0x01,
@@ -79,14 +82,14 @@ namespace myWebSocket
         String path; // currently only support "/"
         bool handShake();
         String domain;
-        WebSocketMessageCallback fn;
+        WebSocketMessageCallback fn = nullptr;
         WiFiClient *client = nullptr;
 
         uint8_t *accBuffer = nullptr;
         uint64_t accBufferOffset = 0;
 
         // this will be true if this client is transfer from local websocket server
-        // the client will not reconnect automaticlly if this will be true
+        // the client will not reconnect automaticlly if this is true
         bool isFromServer = false;
 
         bool autoReconnect = true;
@@ -111,6 +114,7 @@ namespace myWebSocket
 
     public:
         WebSocketEvents status; // to indicate current status of client
+
         inline WebSocketClient() {}
 
         // only CombinedServer will call this function
@@ -119,10 +123,13 @@ namespace myWebSocket
         {
             this->client = client;
             this->isFromServer = true;
+            this->status = WS_CONNECTED;
             this->autoReconnect = false;
         }
+
         inline ~WebSocketClient()
         {
+            // do clean process
             delete this->buffer;
             if (this->client != nullptr)
             {
@@ -173,13 +180,33 @@ namespace myWebSocket
 
         inline int getID() { return this->id; }
 
-        uint64_t send(String *data);
+        // send string
+        inline uint64_t send(String *data)
+        {
+            return this->send(data->c_str());
+        }
 
-        uint64_t send(String data);
+        // send string
+        inline uint64_t send(String data)
+        {
+            return this->send(data.c_str());
+        }
 
+        // send string
         uint64_t send(const char *data);
 
-        uint64_t send(uint8_t *data, uint64_t length);
+        // send binary
+        inline uint64_t send(uint8_t *data, uint64_t length)
+        {
+            return this->_send(TYPE_BIN, data, length);
+        }
+
+        // send binary
+        // this will directly send data as binary
+        inline uint64_t send(char *data, uint64_t length)
+        {
+            return this->_send(TYPE_BIN, (uint8_t *)data, length);
+        }
 
         inline void stop()
         {
@@ -195,24 +222,14 @@ namespace myWebSocket
 
     typedef std::function<void(WebSocketClient *client, WebSocketEvents type, uint8_t *payload, uint64_t length)> WebSocketClientsCallback;
 
+    // for multiple websocket clients
     class WebSocketClients
     {
     private:
         WebSocketClientsCallback fn = nullptr;
         WebSocketClient *clients[MAX_CLIENTS] = {nullptr};
 
-        inline bool queue(WebSocketClient *client)
-        {
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (this->clients[i] == nullptr)
-                {
-                    this->clients[i] = client;
-                    return true;
-                }
-            }
-            return false;
-        }
+        bool queue(WebSocketClient *client);
 
         inline WebSocketClient *create()
         {
@@ -225,6 +242,7 @@ namespace myWebSocket
             if (!queue(client))
             {
                 delete client;
+                ESP_LOGI(debugHeader, "websocket queue full");
                 return nullptr;
             }
             return client;
@@ -266,65 +284,18 @@ namespace myWebSocket
             return client->connect(String(host), port, String(path));
         }
 
-        inline void loop()
-        {
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (this->clients[i] != nullptr)
-                {
-                    this->clients[i]->loop();
-                }
-            }
-        }
+        // main loop
+        void loop();
 
-        inline WebSocketClient *findByID(uint8_t id)
-        {
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (this->clients[i] != nullptr)
-                {
-                    if (this->clients[i]->getID() == id)
-                    {
-                        return this->clients[i];
-                    }
-                }
-            }
-            return nullptr;
-        }
+        // find specific client
+        WebSocketClient *findByID(uint8_t id);
 
-        inline bool disconnectAndRemove(WebSocketClient *client)
-        {
-            if (!client)
-                return false;
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (this->clients[i] == client)
-                {
-                    this->clients[i]->stop();
-                    delete this->clients[i];
-                    this->clients[i] = nullptr;
-                    return true;
-                }
-            }
-            return false;
-        }
+        // disconnect a client and remove it
+        bool disconnectAndRemove(WebSocketClient *client);
 
         inline bool disconnectAndRemove(uint8_t id)
         {
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (this->clients[i] != nullptr)
-                {
-                    if (this->clients[i]->getID() == id)
-                    {
-                        this->clients[i]->stop();
-                        delete this->clients[i];
-                        this->clients[i] = nullptr;
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return this->disconnectAndRemove(this->findByID(id));
         }
     };
 
@@ -370,7 +341,7 @@ namespace myWebSocket
             return len;
         }
 
-        // same as above
+        // send zero block to socket
         inline void close()
         {
             this->print("0\r\n\r\n");
@@ -385,13 +356,16 @@ namespace myWebSocket
     // for http handler
     typedef std::function<void(ExtendedWiFiClient *client, HttpMethod method, uint8_t *data, uint64_t length)> NonWebScoketCallback;
 
+    // http callback arguments
     typedef struct
     {
         String path;
+        int code = 0;
         String mimeType;
-        NonWebScoketCallback fn;
+        NonWebScoketCallback fn = nullptr;
     } HttpCallback;
 
+    // handle http and websocket request
     class CombinedServer
     {
     private:
@@ -401,7 +375,7 @@ namespace myWebSocket
         // websocket clients
         WebSocketClient *webSocketClients[MAX_CLIENTS] = {nullptr};
 
-        WebSocketServerCallback fn;
+        WebSocketServerCallback fn = nullptr;
 
         // router
         std::vector<HttpCallback *> nonWebSocketRequests;
@@ -417,10 +391,12 @@ namespace myWebSocket
         // edit your own response header or something
         bool autoFillHttpResponseHeader = true;
 
-        uint8_t *headerBuffer = new uint8_t[MY_WEBSOCKET_HTTP_MAX_HEADER_LENGTH];
+        uint8_t *headerBuffer = new uint8_t[MY_WEBSOCKET_MAX_HEADER_LENGTH];
         int isWebSocketClientArrayHasFreeSapce();
         int isHttpClientArrayHasFreeSpace();
         int findHttpCallback(String path);
+        void httpHandler(ExtendedWiFiClient *client, String *request);
+        void newWebSocketClientHandShanke(WiFiClient *client, String request, int index);
 
     public:
         inline CombinedServer() {}
@@ -438,14 +414,27 @@ namespace myWebSocket
         }
 
         // for route http requests
-        void on(const char *path, NonWebScoketCallback fn, String mimeType = "text/html;charset=utf-8", bool cover = true);
+        inline void on(String path,
+                       NonWebScoketCallback fn,
+                       String mimeType = "text/html;charset=utf-8",
+                       int statusCode = 200,
+                       bool cover = true)
+        {
+            this->on(path.c_str(), fn, mimeType.c_str(), cover);
+        }
 
-        void newWebSocketClientHandShanke(WiFiClient *client, String request, int index);
+        void on(const char *path,
+                NonWebScoketCallback fn,
+                const char *mimeType = "text/html;charset=utf-8",
+                int statusCode = 200,
+                bool cover = true);
 
-        void httpHandler(ExtendedWiFiClient *client, String *request);
-
+        // handler post data
         inline void setPublicPostHandler(NonWebScoketCallback fn)
         {
+            if (!fn)
+                return;
+
             if (this->publicPostHandler != nullptr)
             {
                 delete this->publicPostHandler;
@@ -454,7 +443,11 @@ namespace myWebSocket
             this->publicPostHandler->path = "";
             this->publicPostHandler->fn = fn;
         }
+
+        // start server
         bool begin(uint16_t port = 80);
+
+        // main loop
         void loop();
     };
 } // namespace myWebSocket
