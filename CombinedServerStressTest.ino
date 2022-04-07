@@ -9,9 +9,11 @@ IPAddress subnet = IPAddress(255, 255, 255, 0);
 
 String globalHash = "";
 
+#define MAX_DATA_LENGtH 8192
+
 void sendData(myWebSocket::WebSocketClient *client)
 {
-    uint16_t length = random(1, 8192);
+    uint16_t length = random(1, MAX_DATA_LENGtH);
     uint8_t binaryOrText = random(10);
     uint8_t t = 0;
     uint8_t *data = new uint8_t[length];
