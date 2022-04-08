@@ -355,6 +355,7 @@ namespace myWebSocket
         {
             if (!this->client->connected())
             {
+                ESP_LOGI(debugHeader, "connection lost");
                 this->client->stop();
                 this->status = WS_DISCONNECTED;
                 if (this->fn)
@@ -648,10 +649,7 @@ namespace myWebSocket
         {
             if (this->clients[i] != nullptr)
             {
-                if (this->clients[i]->available())
-                {
-                    this->clients[i]->loop();
-                }
+                this->clients[i]->loop();
             }
         }
     }
