@@ -1,16 +1,27 @@
+//引入头文件
 #include <Arduino.h>
 #include "mywebsocket/mywebsocket.h"
 #include <WiFi.h>
 
+// Declare and initialize instance
+// 声明和实例化
 myWebSocket::CombinedServer server;
 
+// Define IP and mask for AP mode
+// 定义AP模式IP和子网掩码
 IPAddress APIP = IPAddress(192, 168, 8, 1);
 IPAddress subnet = IPAddress(255, 255, 255, 0);
 
 void setup()
 {
+    // Initialize serial port(for debug)
+    // 初始化串口(测试使用)
     Serial.begin(115200);
-    // STA mode
+    
+    
+    // Uncomment following part and input your SSID and password if you want to use in STA mode
+    // 如果你在STA模式使用，取消下面这部分注释，填写你的SSID和密码
+    
     // WiFi.begin("yourSSID", "Your password");
     // while (WiFi.status() != WL_CONNECTED)
     // {
@@ -18,16 +29,24 @@ void setup()
     //   delay(100);
     //   yield();
     // }
+    
 
-    //call this to enable ESP32 hardware acceleration
+    // Call this to enable ESP32 hardware acceleration
+    // 启用ESP32的硬件加速(SHA)
     mycrypto::SHA::initialize();
     
-    //AP mode
+    
+    // For AP mode
+    // Comment the following part if you'd like to use STA mode
+    // AP模式
+    // 注释掉下面这部分代码如果你使用STA模式
     WiFi.softAP("ESP32_WebSocketServer");
     delay(300);
     WiFi.softAPConfig(APIP, APIP, subnet);
     
-    //set websocket connection callback
+    
+    // Set websocket connection callback(use Lambda function here, you could use normal function if you want to)
+    // 设置websocket客户端的回调函数(此处使用Lambda函数，你也可以使用普通函数)
     server.setCallback(
         [](myWebSocket::WebSocketClient *client, myWebSocket::WebSocketEvents type, uint8_t *payload, uint64_t length)
         {
@@ -48,7 +67,8 @@ void setup()
             }
         });
 
-    //set http callback
+    // Set http callback(for debug)
+    // 设置默认的HTTP回调函数(测试使用)
     server.on(
         "/",
         [](myWebSocket::ExtendedWiFiClient *client, myWebSocket::HttpMethod method, uint8_t *data, uint64_t len)
@@ -116,12 +136,14 @@ void setup()
             client->close();
         });
     
-    //start server
+    // Start server
+    // 启动服务器
     server.begin(80);
 }
 
 void loop()
 {
-    //loop server
+    // Loop server
+    // 循环服务器
     server.loop();
 }
