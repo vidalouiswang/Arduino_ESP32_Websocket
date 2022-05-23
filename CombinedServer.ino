@@ -1,6 +1,6 @@
 // Inlcude header files
 // 引入头文件
-#include <Arduino.h>
+#include <Arduino.h> // This line is optional if you are using Arduino IDE. 如果你使用Arduino IDE这行可以删掉。
 #include "mywebsocket/mywebsocket.h"
 #include <WiFi.h>
 
