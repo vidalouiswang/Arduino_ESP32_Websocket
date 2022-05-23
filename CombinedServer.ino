@@ -10,6 +10,7 @@ IPAddress subnet = IPAddress(255, 255, 255, 0);
 void setup()
 {
     Serial.begin(115200);
+    // STA mode
     // WiFi.begin("yourSSID", "Your password");
     // while (WiFi.status() != WL_CONNECTED)
     // {
@@ -21,9 +22,12 @@ void setup()
     //call this to enable ESP32 hardware acceleration
     mycrypto::SHA::initialize();
     
+    //AP mode
     WiFi.softAP("ESP32_WebSocketServer");
     delay(300);
     WiFi.softAPConfig(APIP, APIP, subnet);
+    
+    
     server.setCallback(
         [](myWebSocket::WebSocketClient *client, myWebSocket::WebSocketEvents type, uint8_t *payload, uint64_t length)
         {
