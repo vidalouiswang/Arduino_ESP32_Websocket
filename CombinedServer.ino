@@ -27,7 +27,7 @@ void setup()
     delay(300);
     WiFi.softAPConfig(APIP, APIP, subnet);
     
-    
+    //set websocket connection callback
     server.setCallback(
         [](myWebSocket::WebSocketClient *client, myWebSocket::WebSocketEvents type, uint8_t *payload, uint64_t length)
         {
@@ -48,6 +48,7 @@ void setup()
             }
         });
 
+    //set http callback
     server.on(
         "/",
         [](myWebSocket::ExtendedWiFiClient *client, myWebSocket::HttpMethod method, uint8_t *data, uint64_t len)
@@ -114,10 +115,13 @@ void setup()
 </html>)");
             client->close();
         });
+    
+    //start server
     server.begin(80);
 }
 
 void loop()
 {
+    //loop server
     server.loop();
 }
