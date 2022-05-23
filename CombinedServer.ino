@@ -1,4 +1,5 @@
-//引入头文件
+// Inlcude header files
+// 引入头文件
 #include <Arduino.h>
 #include "mywebsocket/mywebsocket.h"
 #include <WiFi.h>
@@ -143,7 +144,7 @@ void setup()
 
 void loop()
 {
-    // Loop server
-    // 循环服务器
+    // Loop server to accept websocket client and handle http resquest
+    // 循环服务器来接受websocket客户端和处理http请求
     server.loop();
 }
