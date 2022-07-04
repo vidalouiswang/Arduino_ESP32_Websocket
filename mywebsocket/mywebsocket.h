@@ -42,9 +42,10 @@
 // client length
 #define MAX_CLIENTS 10
 
+#define MY_WEBSOCKET_DEBUG_HEADER "myWebsocket"
+
 namespace myWebSocket
 {
-    static const char *debugHeader = "mywebsocket";
     // to calc server key
     String generateServerKey(String clientKey);
 
@@ -58,7 +59,7 @@ namespace myWebSocket
         TCP_ERROR = 0xf8,
         HANDSHAKE_UNKNOWN_ERROR = 0xf7,
         MAX_PAYLOAD_EXCEED = 0xf6,
-        MEMORY_FULL = 0xf5,
+        BUFFER_ALLOC_FAILED = 0xf5,
         MAX_HEADER_LENGTH_EXCEED = 0xf4,
         REACH_MAX_READ_TIMES = 0xae,
         TYPE_CON = 0x00,
@@ -78,6 +79,7 @@ namespace myWebSocket
     private:
         String host;
         int id = -1;
+        uint8_t *u8aID = nullptr;
         uint16_t port;
         String path; // currently only support "/"
         bool handShake();
@@ -87,10 +89,6 @@ namespace myWebSocket
 
         uint8_t *accBuffer = nullptr;
         uint64_t accBufferOffset = 0;
-
-        // this will be true if this client is transfer from local websocket server
-        // the client will not reconnect automaticlly if this is true
-        bool isFromServer = false;
 
         bool autoReconnect = true;
 
@@ -116,6 +114,10 @@ namespace myWebSocket
         WebSocketEvents status; // to indicate current status of client
 
         inline WebSocketClient() {}
+
+        // this will be true if this client is transfer from local websocket server
+        // the client will not reconnect automaticlly if this is true
+        bool isFromServer = false;
 
         // only CombinedServer will call this function
         // to transfer the client in
@@ -152,6 +154,7 @@ namespace myWebSocket
             this->host = host;
             this->port = port;
             this->path = path;
+            this->status = WS_DISCONNECTED;
             return this->handShake();
         }
 
@@ -179,6 +182,19 @@ namespace myWebSocket
         inline void setID(uint8_t id) { this->id = id; }
 
         inline int getID() { return this->id; }
+
+        // fixed 32 bytes SHA256 bytes array
+        inline void setU8aID(uint8_t *id)
+        {
+            // make a copy
+            for (uint8_t i = 0; i < 32; i++)
+                this->u8aID[i] = id[i];
+        }
+
+        inline uint8_t *getU8aID()
+        {
+            return this->u8aID;
+        }
 
         // send string
         inline uint64_t send(String *data)
@@ -210,7 +226,12 @@ namespace myWebSocket
 
         inline void stop()
         {
+            this->autoReconnect = false;
             this->client->stop();
+        }
+        inline void disconnect()
+        {
+            this->stop();
         }
 
         inline void setAutoReconnect(bool autoReconnect = true, uint64_t timeout = 5000)
@@ -242,7 +263,7 @@ namespace myWebSocket
             if (!queue(client))
             {
                 delete client;
-                ESP_LOGI(debugHeader, "websocket queue full");
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "websocket queue full");
                 return nullptr;
             }
             return client;

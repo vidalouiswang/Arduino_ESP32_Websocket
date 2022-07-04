@@ -27,7 +27,7 @@ namespace myWebSocket
 
         if (!isSHAValid)
         {
-            ESP_LOGW(debugHeader, "SHA failed, SHA module may not enabled first");
+            ESP_LOGW(MY_WEBSOCKET_DEBUG_HEADER, "SHA failed, SHA module may not enabled first");
             return String("");
         }
 #endif
@@ -73,7 +73,7 @@ namespace myWebSocket
 
         if (!isSHAValid)
         {
-            ESP_LOGW(debugHeader, "SHA failed, SHA module may not enabled first");
+            ESP_LOGW(MY_WEBSOCKET_DEBUG_HEADER, "SHA failed, SHA module may not enabled first");
             return String("");
         }
 #endif
@@ -147,7 +147,7 @@ namespace myWebSocket
         String header = generateHanshake();
         if (header.isEmpty())
         {
-            ESP_LOGI(debugHeader, "request header is empty");
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "request header is empty");
             return false;
         }
         // generate server key to verify after server responsed
@@ -159,7 +159,7 @@ namespace myWebSocket
         {
             // connect failed
             this->status = TCP_FAILED;
-            ESP_LOGI(debugHeader, "connect failed")
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "connect failed");
             if (this->fn)
                 this->fn(TCP_FAILED, nullptr, 0);
             return false;
@@ -167,7 +167,7 @@ namespace myWebSocket
         else
         {
             // connected to remote server
-            ESP_LOGI(debugHeader, "connected")
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "connected");
             this->client->setNoDelay(1);
             this->status = TCP_CONNECTED;
 
@@ -178,7 +178,7 @@ namespace myWebSocket
             if (wroteLen != header.length())
             {
                 this->status = TCP_ERROR;
-                ESP_LOGI(debugHeader, "error when send handshake header to server");
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "error when send handshake header to server");
                 if (this->fn)
                     this->fn(WS_DISCONNECTED, nullptr, 0);
                 return false;
@@ -213,7 +213,7 @@ namespace myWebSocket
                     {
                         bzero(this->buffer, MY_WEBSOCKET_BUFFER_LENGTH);
                         this->status = WS_CONNECTED;
-                        ESP_LOGI(debugHeader, "websocket client connected");
+                        ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "websocket client connected");
                         if (this->fn)
                             this->fn(WS_CONNECTED, nullptr, 0);
                         return true;
@@ -223,7 +223,7 @@ namespace myWebSocket
                         // according to standard should disconnect socket
                         this->client->stop();
                         this->status = HANDSHAKE_UNKNOWN_ERROR;
-                        ESP_LOGI(debugHeader, "handshake failed, response header:(%s)", this->buffer);
+                        ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "handshake failed, response header:(%s)", this->buffer);
                         if (this->fn)
                             this->fn(HANDSHAKE_UNKNOWN_ERROR, nullptr, 0);
                         return false;
@@ -232,7 +232,7 @@ namespace myWebSocket
                 else
                 {
                     this->client->stop();
-                    ESP_LOGI(debugHeader, "handshake failed, response header:(%s)", this->buffer);
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "handshake failed, response header:(%s)", this->buffer);
                     this->status = HANDSHAKE_UNKNOWN_ERROR;
                     if (this->fn)
                         this->fn(HANDSHAKE_UNKNOWN_ERROR, nullptr, 0);
@@ -265,6 +265,12 @@ namespace myWebSocket
 
     uint64_t WebSocketClient::_send(WebSocketEvents type, uint8_t *data, uint64_t len)
     {
+        if (!data || !len)
+        {
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "empty content to send");
+            return 0;
+        }
+
         uint8_t mask[4];
         for (int i = 0; i < 4; i++)
         {
@@ -355,11 +361,18 @@ namespace myWebSocket
         {
             if (!this->client->connected())
             {
-                ESP_LOGI(debugHeader, "connection lost");
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "connection lost");
+
+                // maual disconnect
                 this->client->stop();
+
+                // set statue
                 this->status = WS_DISCONNECTED;
+
+                // call callback
                 if (this->fn)
                     this->fn(WS_DISCONNECTED, nullptr, 0);
+
                 return;
             }
 
@@ -374,6 +387,8 @@ namespace myWebSocket
             if (len < 0) // socket error
             {
                 this->client->stop();
+
+                // set statue and call callback
                 this->status = TCP_ERROR;
                 if (this->fn)
                     this->fn(TCP_ERROR, nullptr, 0);
@@ -421,6 +436,7 @@ namespace myWebSocket
             // marked if recv buffer has been deleted by user
             this->isRecvBufferHasBeenDeleted = false;
 
+            // declare buffer pointer
             uint8_t *buf = nullptr;
             uint8_t maskBytes[4];
 
@@ -456,41 +472,44 @@ namespace myWebSocket
                     this->status = MAX_PAYLOAD_EXCEED;
                     if (this->fn)
                         this->fn(MAX_PAYLOAD_EXCEED, nullptr, 0);
-                    ESP_LOGI(debugHeader, "MAX_PAYLOAD_EXCEED");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "MAX_PAYLOAD_EXCEED");
                     return;
                 }
             }
 
+            // define another length for optimze unmask process
             uint64_t bufferLength = length;
 
             // length +1 for text type end of string
             if (type == TYPE_TEXT && isThisFrameisFin)
             {
+                // for '\0' if there isn't '\0' at tail
                 bufferLength += 1;
             }
 
             // for optimize unmask process
             bufferLength += 4 - (bufferLength % 4);
-            ESP_LOGI(debugHeader, "optimized length:%d", bufferLength);
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "optimized length:%d", bufferLength);
 
-            // if length overflow it will be 0(though it won't happen forever on esp32)
+            // if length overflow it will be 0(though it won't happen forever on esp32 because of limited RAM size)
             if (!bufferLength || this->accBufferOffset + length > MY_WEBSOCKET_CLIENT_MAX_PAYLOAD_LENGTH)
             {
                 this->status = MAX_PAYLOAD_EXCEED;
                 if (this->fn)
                     this->fn(MAX_PAYLOAD_EXCEED, nullptr, 0);
-                ESP_LOGI(debugHeader, "MAX_PAYLOAD_EXCEED");
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "MAX_PAYLOAD_EXCEED");
                 return;
             }
 
             // allocate buffer
             buf = new (std::nothrow) uint8_t[bufferLength];
 
+            // check buffer allocate success or not
             if (buf == nullptr)
             {
-                this->status = MEMORY_FULL;
+                this->status = BUFFER_ALLOC_FAILED;
                 if (this->fn)
-                    this->fn(MEMORY_FULL, nullptr, 0);
+                    this->fn(BUFFER_ALLOC_FAILED, nullptr, 0);
                 return;
             }
 
@@ -504,28 +523,55 @@ namespace myWebSocket
             // otherwise this client is directly connected to remote
             // no mask key should read
             uint64_t readLength = this->client->read(buf, length);
+
+            // read times
             int times = 0;
-            while (readLength < length)
+
+            // single read times
+            int segmentLength = 0;
+
+            // read data
+            while (readLength < length && ++times < READ_MAX_TIMES)
             {
                 while (!this->client->available())
                 {
                     yield();
+                    delay(1);
                 }
-                yield();
-                int segmentLength = this->client->read(buf + readLength, length);
-                readLength += segmentLength;
-                if (++times > READ_MAX_TIMES)
+
+                // read more data
+                segmentLength = this->client->read(buf + readLength, length - readLength);
+
+                // no more data to read
+                if (!segmentLength)
                 {
-                    delete buf;
-                    client->stop();
+                    break;
+                }
+
+                // accumulate read length
+                readLength += segmentLength;
+
+                // reset single time read length
+                segmentLength = 0;
+
+                if (times > READ_MAX_TIMES)
+                {
+                    if (buf)
+                        delete buf;
+
+                    this->client->stop();
                     this->status = REACH_MAX_READ_TIMES;
+
                     if (this->fn)
                         this->fn(REACH_MAX_READ_TIMES, nullptr, 0);
+
                     return;
                 }
             }
+
             if (readLength == length)
             {
+                // correct data length
                 if (this->isFromServer)
                 {
                     // unmask
@@ -543,12 +589,7 @@ namespace myWebSocket
                     memset(buf + length, 0, bufferLength - length);
                 }
 
-                // if (type == TYPE_TEXT && isThisFrameisFin)
-                // {
-                //     buf[length] = 0;
-                // }
-
-                // copy data to buffer if this frame isn't last frame
+                // copy data to extra buffer if this frame isn't last frame
                 // otherwise call callback
                 if (isThisFrameisFin)
                 {
@@ -576,25 +617,31 @@ namespace myWebSocket
                 }
                 else
                 {
-                    // copy buffer
+                    // define extra buffer
                     if (!this->accBufferOffset)
                     {
                         this->accBuffer = new (std::nothrow) uint8_t[MY_WEBSOCKET_CLIENT_MAX_PAYLOAD_LENGTH];
-                        if (this->accBuffer == nullptr)
+
+                        //check extra buffer allocate state
+                        if (!(this->accBuffer))
                         {
                             if (buf != nullptr)
                             {
                                 delete buf;
                             }
 
-                            this->status = MEMORY_FULL;
+                            this->status = BUFFER_ALLOC_FAILED;
                             if (this->fn)
-                                this->fn(MEMORY_FULL, nullptr, 0);
+                                this->fn(BUFFER_ALLOC_FAILED, nullptr, 0);
 
                             return;
                         }
                     }
+
+                    //copy original buffer
                     memcpy(this->accBuffer + this->accBufferOffset, buf, length);
+
+                    //accumulate extra buffer offset
                     this->accBufferOffset += length;
                 }
             }
@@ -606,13 +653,17 @@ namespace myWebSocket
                     this->fn(TCP_ERROR, nullptr, 0);
             }
 
-            if (!this->isRecvBufferHasBeenDeleted)
+            if (!(this->isRecvBufferHasBeenDeleted))
             {
-                delete buf;
+                if (buf)
+                {
+                    delete buf;
+                }
             }
         }
         else
-        { // disconnected
+        {
+            // disconnected
             if (this->autoReconnect && !this->isFromServer)
             {
                 if (millis() - this->lastConnectTime > this->connectTimeout)
@@ -673,7 +724,7 @@ namespace myWebSocket
     {
         if (!client)
             return false;
-        for (uint8_t i = 0; i < MAX_CLIENTS; i++)
+        for (uint8_t i = 0; i < MAX_CLIENTS; ++i)
         {
             if (this->clients[i] == client)
             {
@@ -800,7 +851,7 @@ namespace myWebSocket
                     pathStart = request->indexOf("POST ", 0); // + 5;
                     if (pathStart < 0)
                     {
-                        ESP_LOGI(debugHeader, "can not find path of http request");
+                        ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "can not find path of http request");
                         return;
                     }
                     pathStart += 5;
@@ -816,7 +867,7 @@ namespace myWebSocket
 
                 if (pathStart >= pathEnd)
                 {
-                    ESP_LOGI(debugHeader, "can not find path of http request");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "can not find path of http request");
                     return;
                 }
 
@@ -845,7 +896,7 @@ namespace myWebSocket
                     }
                     else
                     {
-                        ESP_LOGI(debugHeader, "no http handler mathced: %s", path.c_str());
+                        ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "no http handler mathced: %s", path.c_str());
                         client->print("HTTP/1.1 404\r\n");
                         client->print("Connection: close\r\n");
                         client->print("Content-Type: text/plain\r\n");
@@ -857,14 +908,14 @@ namespace myWebSocket
                 else
                 {
                     client->stop();
-                    ESP_LOGI(debugHeader, "empty http request path");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "empty http request path");
                 }
                 return;
             }
             else
             {
                 client->stop();
-                ESP_LOGI(debugHeader, "request is empty");
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "request is empty");
             }
         }
 
@@ -878,10 +929,10 @@ namespace myWebSocket
 
         if (!data)
         {
-            ESP_LOGI(debugHeader, "memory full");
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "memory full");
 
             if (this->fn)
-                this->fn(nullptr, MEMORY_FULL, nullptr, 0);
+                this->fn(nullptr, BUFFER_ALLOC_FAILED, nullptr, 0);
         }
 
         long len = client->read(data, MY_WEBSOCKET_HTTP_POST_LENGTH);
@@ -919,8 +970,8 @@ namespace myWebSocket
     {
         if (this->server->hasClient())
         {
-            ESP_LOGI(debugHeader, "A new client connected");
-            ESP_LOGI(debugHeader, "Free Heap: %d", ESP.getFreeHeap());
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "A new client connected");
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "Free Heap: %d", ESP.getFreeHeap());
 
             // get client
             WiFiClient newClient = this->server->available();
@@ -942,7 +993,7 @@ namespace myWebSocket
                     client->stop();
                     delete client;
 
-                    ESP_LOGI(debugHeader, "error when read request header");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "error when read request header");
                     if (this->fn)
                         this->fn(nullptr, TCP_ERROR, nullptr, 0);
 
@@ -954,7 +1005,7 @@ namespace myWebSocket
                     client->stop();
                     delete client;
 
-                    ESP_LOGI(debugHeader, "request header length beyond max length");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "request header length beyond max length");
 
                     if (this->fn)
                         this->fn(nullptr, MAX_HEADER_LENGTH_EXCEED, nullptr, 0);
@@ -992,7 +1043,7 @@ namespace myWebSocket
                             client->flush();
                             client->stop();
                             delete client;
-                            ESP_LOGI(debugHeader, "websocket queue full");
+                            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "websocket queue full");
                         }
                         else
                         {
@@ -1015,7 +1066,7 @@ namespace myWebSocket
                             client->flush();
                             client->stop();
                             delete client;
-                            ESP_LOGI(debugHeader, "http queue full");
+                            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "http queue full");
                         }
                     }
                 }
@@ -1044,7 +1095,7 @@ namespace myWebSocket
                 {
                     delete loopClient;
                     this->webSocketClients[i] = nullptr;
-                    ESP_LOGI(debugHeader, "A websocket client disconnected");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "A websocket client disconnected");
                 }
             }
 
@@ -1063,7 +1114,7 @@ namespace myWebSocket
                 {
                     delete extendedclient;
                     this->clients[i] = nullptr;
-                    ESP_LOGI(debugHeader, "A client disconnected");
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "A client disconnected");
                 }
             }
         }
@@ -1080,7 +1131,7 @@ namespace myWebSocket
         if (cb->path.isEmpty() || !fn)
         {
             delete cb;
-            ESP_LOGI(debugHeader, "invalid path or callback for request");
+            ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "invalid path or callback for request");
             return;
         }
 
