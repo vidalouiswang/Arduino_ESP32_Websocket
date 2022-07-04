@@ -16,6 +16,8 @@ This lib doesn't support wss://. Because I think use AES(or other encryption) to
 
 2022/05/23 Add more comments to default example
 
+2022/07/05 Bug fixed
+
 # Characteristic of this this project
 
 ### High speed
