@@ -18,6 +18,8 @@ This lib doesn't support wss://. Because I think use AES(or other encryption) to
 
 2022/07/05 Bug fixed
 
+2022/07/11 latest push add AES 256 CBC code, but this isn't necessary for websocket, you could remove it if you want to
+
 # Characteristic of this this project
 
 ### High speed
