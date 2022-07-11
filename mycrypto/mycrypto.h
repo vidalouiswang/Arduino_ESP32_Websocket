@@ -19,11 +19,13 @@
 #include "soc/dport_access.h"
 #include "soc/hwcrypto_reg.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 4
+#if ESP_IDF_VERSION_MAJOR < 4
 #include "esp_private/periph_ctrl.h"
 #else
 #include "driver/periph_ctrl.h"
 #endif
+
+#define MY_CRYPTO_DEBUG_HEADER "mycrypto"
 
 namespace mycrypto
 {
@@ -70,6 +72,18 @@ namespace mycrypto
         static inline void sha256(uint8_t *data, uint64_t length, uint32_t *output)
         {
             sha(data, length, output, SHA256);
+        }
+
+        static inline void sha1(uint32_t data, uint8_t *output)
+        {
+            uint8_t t[4] = {((uint8_t)(data >> 24)), ((uint8_t)(data >> 16)), ((uint8_t)(data >> 8)), ((uint8_t)(data))};
+            convertU32ToU8(t, 4, output, SHA1);
+        }
+
+        static inline void sha256(uint32_t data, uint8_t *output)
+        {
+            uint8_t t[4] = {((uint8_t)(data >> 24)), ((uint8_t)(data >> 16)), ((uint8_t)(data >> 8)), ((uint8_t)(data))};
+            convertU32ToU8(t, 4, output, SHA256);
         }
 
         static inline String sha1(uint8_t *data, uint64_t length, SHAOutputCase hexCase = LOWER_CASE)
@@ -158,6 +172,42 @@ namespace mycrypto
         {
             return base64Decode((uint8_t *)data, iLen, oLen);
         }
+    };
+
+    class AES
+    {
+    public:
+        static inline void initialize() { periph_module_enable(PERIPH_AES_MODULE); }
+
+        // AES encryption and decryption according to ESPRESSIF ESP32 technical reference manual,
+        // chapter 22, page 523(Chinese version)
+        static uint8_t *aes256CBCEncrypt(uint8_t *key,    // 32 bytes
+                                         uint8_t *iv,     // 16 bytes
+                                         uint8_t *plain,  // plain data
+                                         uint32_t length, // length of plain
+                                         uint32_t *outLen // length of output
+        );
+
+        static uint8_t *aes256CBCDecrypt(
+            uint8_t *key,    // 32 bytes key
+            uint8_t *iv,     // 16 bytes iv
+            uint8_t *cipher, // cipher data
+            uint32_t length, // length of cipher data
+            uint32_t *outLen // length of output
+        );
+
+        // get hex string of aes 256 cbc
+        static String aes256CBCEncrypt(String key,  // key
+                                       String iv,   // iv
+                                       String plain // data
+        );
+
+        // get original data form aes 256 cbc hex string
+        static String AES::aes256CBCDecrypt(
+            String key,   // key
+            String iv,    // iv
+            String cipher // data, hex format
+        );
     };
 }
 

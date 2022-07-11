@@ -338,4 +338,416 @@ namespace mycrypto
 
         return output;
     }
+
+    // AES encryption and decryption according to ESPRESSIF ESP32 technical reference manual,
+    // chapter 22, page 523(Chinese version)
+    uint8_t *AES::aes256CBCEncrypt(uint8_t *key,    // 32 bytes
+                                   uint8_t *iv,     // 16 bytes
+                                   uint8_t *plain,  // plain
+                                   uint32_t length, // length of plain
+                                   uint32_t *outLen // length of output
+    )
+    {
+        // declare 32bit key and iv
+        uint32_t key32[8] = {0};
+
+        // data block is 128 bits, so iv as same as data block length
+        uint32_t iv32[4] = {0};
+
+        // convert key and iv to uint32 array
+        for (uint8_t i = 0, j = 0; i < 8; ++i, j += 4)
+        {
+            key32[i] =
+                (key[j] << 24) + (key[j + 1] << 16) + (key[j + 2] << 8) + (key[j + 3]);
+            if (i < 4)
+            {
+                iv32[i] =
+                    (iv[j] << 24) + (iv[j + 1] << 16) + (iv[j + 2] << 8) + (iv[j + 3]);
+            }
+        }
+
+        // padding plain with pkcs7 padding
+        uint8_t paddingData = 16 - (length % 16);
+        uint32_t bufferLength = length + paddingData;
+
+        // allocate buffer to hold original data after padding
+        uint8_t *bufferPadding = new (std::nothrow) uint8_t[bufferLength];
+
+        if (!bufferPadding)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "memory allocate failed");
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // copy original data
+        memcpy(bufferPadding, plain, length);
+
+        // padding
+        memset(bufferPadding + length, paddingData, paddingData);
+
+        // allocate buffer for uint32 array
+        uint32_t *buffer = new (std::nothrow) uint32_t[bufferLength / 4];
+        if (!buffer)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "memory allocate failed");
+            delete bufferPadding;
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // convert uint8 array to uint32 array
+        for (uint32_t i = 0, k = 0; i < bufferLength; i += 4)
+        {
+            buffer[k++] =
+                (bufferPadding[i] << 24) + (bufferPadding[i + 1] << 16) + (bufferPadding[i + 2] << 8) + (bufferPadding[i + 3]);
+        }
+
+        // length for uint32 array after padding and convertion
+        bufferLength /= 4;
+
+        // remove padding buffer
+        delete bufferPadding;
+
+        // xor first block with iv
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            buffer[i] ^= iv32[i];
+        }
+
+        // config aes mode and endian
+        DPORT_REG_WRITE(AES_MODE_REG, (uint32_t)2);
+        DPORT_REG_WRITE(AES_ENDIAN, (uint32_t)42);
+
+        // fill key into register
+        for (uint8_t i = 0; i < 8; ++i)
+        {
+            DPORT_REG_WRITE(AES_KEY_BASE + (i * 4), key32[i]);
+        }
+
+        // start encrypting
+        for (uint32_t i = 0; i < bufferLength; i += 4)
+        {
+            // fill plain data(after padding) into register
+            DPORT_REG_WRITE(AES_TEXT_BASE, buffer[i]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 4, buffer[i + 1]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 8, buffer[i + 2]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 12, buffer[i + 3]);
+
+            // start encrypting
+            DPORT_REG_WRITE(AES_START_REG, (uint32_t)1);
+
+            // wait idle register
+            while (!(DPORT_REG_READ(AES_IDLE_REG)))
+            {
+            }
+
+            // read cipher data from register
+            buffer[i] = DPORT_REG_READ(AES_TEXT_BASE);
+            buffer[i + 1] = DPORT_REG_READ(AES_TEXT_BASE + 4);
+            buffer[i + 2] = DPORT_REG_READ(AES_TEXT_BASE + 8);
+            buffer[i + 3] = DPORT_REG_READ(AES_TEXT_BASE + 12);
+
+            // encryption finished
+            if (i + 4 >= bufferLength)
+            {
+                break;
+            }
+
+            // xor next block with former cipher text(cbc)
+            buffer[i + 4] ^= buffer[i];
+            buffer[i + 5] ^= buffer[i + 1];
+            buffer[i + 6] ^= buffer[i + 2];
+            buffer[i + 7] ^= buffer[i + 3];
+        }
+
+        // convert uint32 array into uint8 array
+        // this is optional, here only for uniform output and input
+        uint8_t *u8Buffer = new uint8_t[bufferLength * 4];
+        for (uint32_t i = 0, j = 0; i < bufferLength; ++i, j += 4)
+        {
+            u8Buffer[j] = (buffer[i] & (uint32_t)(0xff000000U)) >> 24;
+            u8Buffer[j + 1] = (buffer[i] & (uint32_t)(0x00ff0000U)) >> 16;
+            u8Buffer[j + 2] = (buffer[i] & (uint32_t)(0x0000ff00U)) >> 8;
+            u8Buffer[j + 3] = (buffer[i] & (uint32_t)(0x000000ffU));
+        }
+
+        // remove uint32 array
+        delete buffer;
+
+        // return result
+        (*outLen) = bufferLength * 4;
+        return u8Buffer;
+    }
+
+    uint8_t *AES::aes256CBCDecrypt(
+        uint8_t *key,    // key
+        uint8_t *iv,     // iv
+        uint8_t *cipher, // cipher data
+        uint32_t length, // length of cipher data
+        uint32_t *outLen // length of output
+    )
+    {
+
+        // length of input must be an integer of multiple of 16
+        if (length % 16)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "data is invalid");
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // declare 32bit key and iv for convertion
+        uint32_t key32[8] = {0};
+        uint32_t iv32[4] = {0};
+
+        // convert key and iv to uint32 array
+        for (uint8_t i = 0, j = 0; i < 8; ++i, j += 4)
+        {
+            key32[i] =
+                (key[j] << 24) + (key[j + 1] << 16) + (key[j + 2] << 8) + (key[j + 3]);
+            if (i < 4)
+            {
+                iv32[i] =
+                    (iv[j] << 24) + (iv[j + 1] << 16) + (iv[j + 2] << 8) + (iv[j + 3]);
+            }
+        }
+
+        // calcuate length of uint32 array
+        uint32_t bufferLength = length / 4;
+
+        // allocate buffer
+        uint32_t *buffer = new (std::nothrow) uint32_t[bufferLength];
+
+        if (!buffer)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "buffer allocate failed when aes decrypting");
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // convert uint8 array to uint32 array
+        for (uint32_t i = 0, j = 0; i < bufferLength; ++i, j += 4)
+        {
+            buffer[i] =
+                (cipher[j] << 24) + (cipher[j + 1] << 16) + (cipher[j + 2] << 8) + (cipher[j + 3]);
+        }
+
+        // fill key into register
+        for (uint8_t i = 0; i < 8; ++i)
+        {
+            DPORT_REG_WRITE(AES_KEY_BASE + (i * 4), key32[i]);
+        }
+
+        // config aes mode and endian
+        DPORT_REG_WRITE(AES_MODE_REG, (uint32_t)6);
+        DPORT_REG_WRITE(AES_ENDIAN, (uint32_t)42);
+
+        // start decrypting
+        // from last block to previous block
+        for (uint32_t i = bufferLength - 4;;)
+        {
+            // fill cipher data to registers
+            DPORT_REG_WRITE(AES_TEXT_BASE, buffer[i]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 4, buffer[i + 1]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 8, buffer[i + 2]);
+            DPORT_REG_WRITE(AES_TEXT_BASE + 12, buffer[i + 3]);
+
+            // start decrypting current block
+            DPORT_REG_WRITE(AES_START_REG, (uint32_t)1);
+
+            // wait idle register
+            while (!(DPORT_REG_READ(AES_IDLE_REG)))
+            {
+            }
+
+            // read plain data
+            buffer[i] = DPORT_REG_READ(AES_TEXT_BASE);
+            buffer[i + 1] = DPORT_REG_READ(AES_TEXT_BASE + 4);
+            buffer[i + 2] = DPORT_REG_READ(AES_TEXT_BASE + 8);
+            buffer[i + 3] = DPORT_REG_READ(AES_TEXT_BASE + 12);
+            // got plain data of current block
+
+            // the first block has been decrypted
+            // ready to break;
+            if (!i)
+            {
+                break;
+            }
+
+            // xor plain data(after decryption) of current block with former block cipher data
+            if (i >= 4)
+            {
+                buffer[i] ^= buffer[i - 4];
+                buffer[i + 1] ^= buffer[i - 3];
+                buffer[i + 2] ^= buffer[i - 2];
+                buffer[i + 3] ^= buffer[i - 1];
+                // got original data of current block
+            }
+            i -= 4;
+        }
+
+        // xor first block with iv
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            buffer[i] ^= iv32[i];
+        }
+
+        // read padding length
+        uint8_t paddingLength = (buffer[bufferLength - 1] & (uint32_t)(0xffU));
+        if (!paddingLength || paddingLength > 0x10)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "length of padding is invalid");
+            (*outLen) = 0;
+            delete buffer;
+            return nullptr;
+        }
+
+        // get length of real data
+        uint32_t realLength = (bufferLength * 4) - paddingLength;
+
+        // allocate buffer for real data
+        uint8_t *outputBuffer = new (std::nothrow) uint8_t[realLength];
+
+        if (!outputBuffer)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "allocate memory failed");
+            (*outLen) = 0;
+            delete buffer;
+            return nullptr;
+        }
+
+        // copy real data from uint32 array to uint8 array
+        for (uint32_t i = 0, j = 0, k = 0, t = 0xff000000U; i < realLength; ++i)
+        {
+            outputBuffer[i] = (uint8_t)((buffer[j] & t) >> (24 - (k << 3)));
+            ++k;
+            t >>= 8;
+            if (!(k % 4))
+            {
+                ++j;
+                k = 0;
+                t = 0xff000000U;
+            }
+        }
+
+        // remove uint32 array
+        delete buffer;
+
+        // return data
+        (*outLen) = realLength;
+        return outputBuffer;
+    }
+
+    // get hex string of aes 256 cbc
+    String AES::aes256CBCEncrypt(String key,  // key
+                                 String iv,   // iv
+                                 String plain // data
+    )
+    {
+        if (!key.length() || !iv.length() || !plain.length())
+        {
+            return "invalid input data";
+        }
+
+        if (key.length() != 32)
+        {
+            return "invalid length of key";
+        }
+
+        if (iv.length() != 16)
+        {
+            return "invalid length of iv";
+        }
+
+        uint32_t outLen = 0;
+        uint8_t *buffer = aes256CBCEncrypt((uint8_t *)key.c_str(),
+                                           (uint8_t *)iv.c_str(),
+                                           (uint8_t *)plain.c_str(),
+                                           plain.length(),
+                                           &outLen);
+        if (!outLen || !buffer)
+        {
+            if (buffer)
+            {
+                delete buffer;
+            }
+            return "invalid input data";
+        }
+
+        String output = "";
+        char t[3];
+        t[2] = 0;
+
+        for (uint32_t i = 0; i < outLen; ++i)
+        {
+            sprintf(t, "%02x", buffer[i]);
+            output += t;
+        }
+
+        delete buffer;
+
+        return output;
+    }
+
+    // get original data of aes 256 cbc hex string
+    String AES::aes256CBCDecrypt(
+        String key,   // key
+        String iv,    // iv
+        String cipher // data, hex format
+    )
+    {
+        if (!key.length() || !iv.length() || !cipher.length())
+        {
+            return "invalid input data";
+        }
+
+        if (cipher.length() % 16)
+        {
+            return "invalid length of data";
+        }
+
+        if (key.length() != 32)
+        {
+            return "invalid length of key";
+        }
+
+        if (iv.length() != 16)
+        {
+            return "invalid length of iv";
+        }
+
+        uint32_t bufferLength = cipher.length() / 2;
+
+        uint8_t encryptedBuffer[bufferLength] = {0};
+
+        if (!encryptedBuffer)
+        {
+            return "allocate memory failed";
+        }
+
+        for (uint32_t i = 0, j = 0; j < bufferLength; i += 2)
+        {
+            sscanf(cipher.substring(i, i + 2).c_str(), "%02x", (encryptedBuffer + j));
+            ++j;
+        }
+
+        uint32_t outLen = 0;
+        uint8_t *decryptedBuffer = aes256CBCDecrypt(
+            (uint8_t *)key.c_str(),
+            (uint8_t *)iv.c_str(),
+            encryptedBuffer,
+            bufferLength,
+            &outLen);
+
+        if (!outLen || !decryptedBuffer)
+        {
+            return "error when decrypting data";
+        }
+
+        String output = String((const char *)decryptedBuffer, outLen);
+        delete decryptedBuffer;
+
+        return output;
+    }
 }
