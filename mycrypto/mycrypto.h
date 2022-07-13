@@ -19,10 +19,12 @@
 #include "soc/dport_access.h"
 #include "soc/hwcrypto_reg.h"
 
+#ifndef _DRIVER_PERIPH_CTRL_H_
 #if ESP_IDF_VERSION_MAJOR < 4
 #include "esp_private/periph_ctrl.h"
 #else
 #include "driver/periph_ctrl.h"
+#endif
 #endif
 
 #define MY_CRYPTO_DEBUG_HEADER "mycrypto"
