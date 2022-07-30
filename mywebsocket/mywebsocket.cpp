@@ -88,7 +88,7 @@ namespace myWebSocket
         return wsHeader;
     }
 
-    bool WebSocketClient::connect(String url, bool withHeader)
+    bool WebSocketClient::connect(String url)
     {
         if (url.startsWith("wss://"))
         {
@@ -97,13 +97,6 @@ namespace myWebSocket
         if (url.startsWith("ws://"))
         {
             url = url.substring(url.indexOf("ws://") + 5);
-        }
-        else
-        {
-            if (withHeader)
-            {
-                return false;
-            }
         }
 
         int a = url.indexOf(":");
@@ -143,7 +136,6 @@ namespace myWebSocket
 
     bool WebSocketClient::handShake()
     {
-        this->client = new WiFiClient();
         String header = generateHanshake();
         if (header.isEmpty())
         {
@@ -153,6 +145,8 @@ namespace myWebSocket
         // generate server key to verify after server responsed
         String serverKey = this->clientKey + String("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
         serverKey = generateServerKey(serverKey);
+
+        this->client->setTimeout(3);
 
         // connect to remote server
         if (!this->client->connect(this->host.c_str(), this->port))
@@ -357,6 +351,7 @@ namespace myWebSocket
 
     void WebSocketClient::loop()
     {
+
         if (this->status == WS_CONNECTED)
         {
             if (!this->client->connected())
@@ -622,7 +617,7 @@ namespace myWebSocket
                     {
                         this->accBuffer = new (std::nothrow) uint8_t[MY_WEBSOCKET_CLIENT_MAX_PAYLOAD_LENGTH];
 
-                        //check extra buffer allocate state
+                        // check extra buffer allocate state
                         if (!(this->accBuffer))
                         {
                             if (buf != nullptr)
@@ -638,10 +633,10 @@ namespace myWebSocket
                         }
                     }
 
-                    //copy original buffer
+                    // copy original buffer
                     memcpy(this->accBuffer + this->accBufferOffset, buf, length);
 
-                    //accumulate extra buffer offset
+                    // accumulate extra buffer offset
                     this->accBufferOffset += length;
                 }
             }
@@ -668,73 +663,12 @@ namespace myWebSocket
             {
                 if (millis() - this->lastConnectTime > this->connectTimeout)
                 {
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "reconnecting...");
                     this->lastConnectTime = millis();
-                    if (this->client != nullptr)
-                    {
-                        this->client->stop();
-                        delete this->client;
-                        this->client = nullptr;
-                    }
                     this->handShake();
                 }
             }
         }
-    }
-
-    bool WebSocketClients::queue(WebSocketClient *client)
-    {
-        for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-        {
-            if (this->clients[i] == nullptr)
-            {
-                this->clients[i] = client;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void WebSocketClients::loop()
-    {
-        for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-        {
-            if (this->clients[i] != nullptr)
-            {
-                this->clients[i]->loop();
-            }
-        }
-    }
-
-    WebSocketClient *WebSocketClients::findByID(uint8_t id)
-    {
-        for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-        {
-            if (this->clients[i] != nullptr)
-            {
-                if (this->clients[i]->getID() == id)
-                {
-                    return this->clients[i];
-                }
-            }
-        }
-        return nullptr;
-    }
-
-    bool WebSocketClients::disconnectAndRemove(WebSocketClient *client)
-    {
-        if (!client)
-            return false;
-        for (uint8_t i = 0; i < MAX_CLIENTS; ++i)
-        {
-            if (this->clients[i] == client)
-            {
-                this->clients[i]->stop();
-                delete this->clients[i];
-                this->clients[i] = nullptr;
-                return true;
-            }
-        }
-        return false;
     }
 
     bool CombinedServer::begin(uint16_t port)
