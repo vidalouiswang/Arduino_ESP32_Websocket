@@ -11,13 +11,13 @@
 
 这个库不支持wss服务器和客户端，因为我觉得发数据之前先用AES加密数据安全性更高，https也不是绝对安全的，但是AES-CBC-256目前是绝对安全的，当然，你得有同样的解密密匙，这个就取决于你的设计了。
 
-2022/05/23 默认例子里补了点中文注释
+2022/05/23 默认例子里补了点中文注释。
 
-2022/07/05 修复了bug
+2022/07/05 修复了bug。
 
-2022/07/11 最新的提交更新了直接使用AES的代码，但是这个对于websocket不是必须的，你不想要可以删除这部分代码
+2022/07/11 最新的提交更新了直接使用AES的代码，但是这个对于websocket不是必须的，你不想要可以删除这部分代码。
 
-2022/07/31 为头文件["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h) 补充了全部的标准的中英双语注释
+2022/07/31 为头文件["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h) 补充了全部的标准的中英双语注释；类"WebSocketClients"已被移除。
 
 # 这个项目的特点
 
