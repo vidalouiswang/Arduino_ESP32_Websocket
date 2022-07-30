@@ -135,7 +135,7 @@ namespace mycrypto
                 }
             }
         }
-        free(buf);
+        delete buf;
 
         // get sha result
         if (type & 1)
