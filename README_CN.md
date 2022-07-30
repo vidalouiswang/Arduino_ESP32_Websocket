@@ -17,6 +17,8 @@
 
 2022/07/11 最新的提交更新了直接使用AES的代码，但是这个对于websocket不是必须的，你不想要可以删除这部分代码
 
+2022/07/31 为头文件["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h) 补充了全部的标准的中英双语注释
+
 # 这个项目的特点
 
 ### 快速
