@@ -14,13 +14,13 @@ Another one has memory leak when act a server(I try to fix it but couldn't find 
 
 This lib doesn't support wss://. Because I think use AES(or other encryption) to encrypt data before send it is much better(of course you need both user have same key), that depends on your design.
 
-2022/05/23 Add more comments to default example
+2022/05/23 Add more comments to default example.
 
-2022/07/05 Bug fixed
+2022/07/05 Bug fixed.
 
-2022/07/11 Latest push add AES 256 CBC code, but this isn't necessary for websocket, you could remove it if you want to
+2022/07/11 Latest push add AES 256 CBC code, but this isn't necessary for websocket, you could remove it if you want to.
 
-2022/07/31 Add standard full comments(English version and Chinese version) to header file["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h)
+2022/07/31 Add standard full comments(English version and Chinese version) to header file["mywebsocket.h"](https://github.com/vidalouiswang/Arduino_ESP32_Websocket/blob/main/mywebsocket/mywebsocket.h); The class "WebSocketClients" had been removed.
 
 # Characteristic of this this project
 
