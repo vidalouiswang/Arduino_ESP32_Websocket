@@ -7,30 +7,19 @@ namespace myWebSocket
     String generateServerKey(String clientKey)
     {
         int shaLen = 20;
-        char *output[shaLen];
+        uint8_t output[shaLen] = {0};
 
         // this part use ESP32 SHA hardware acceleration module directly
         // you could change it if you don't use ESP32
-        mycrypto::SHA::sha1((uint8_t *)clientKey.c_str(), clientKey.length(), (uint8_t *)output);
+        mycrypto::SHA::sha1((uint8_t *)clientKey.c_str(), clientKey.length(), output);
 
-#ifdef DEBUG_MYCRYPTO
-        bool isSHAValid = false;
-        // SHA result will be all zero if doesn't enable SHA module at first
-        for (int i = 0; i < shaLen; i++)
-        {
-            if (output[i])
-            {
-                isSHAValid = true;
-                break;
-            }
-        }
+        uint8_t tmp = 0;
 
-        if (!isSHAValid)
-        {
-            ESP_LOGW(MY_WEBSOCKET_DEBUG_HEADER, "SHA failed, SHA module may not enabled first");
+        for (uint32_t i = 0; i < shaLen; ++i)
+            tmp |= output[i];
+
+        if (!tmp)
             return String("");
-        }
-#endif
 
         return mycrypto::Base64::base64Encode((const char *)output, shaLen);
     }
@@ -145,6 +134,15 @@ namespace myWebSocket
         // generate server key to verify after server responsed
         String serverKey = this->clientKey + String("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
         serverKey = generateServerKey(serverKey);
+
+        if (!serverKey.length())
+        {
+            if (this->fn)
+            {
+                this->fn(ERROR_GENERATE_KEY, nullptr, 0);
+                return false;
+            }
+        }
 
         this->client->setTimeout(3);
 
@@ -705,7 +703,7 @@ namespace myWebSocket
         return -1;
     }
 
-    void CombinedServer::newWebSocketClientHandShanke(WiFiClient *client, String request, int index)
+    void CombinedServer::newWebSocketClientHandShanke(ExtendedWiFiClient *client, String request, int index)
     {
         // websocket
         int keyStart = request.indexOf("Sec-WebSocket-Key: "); // + 19;
@@ -714,6 +712,7 @@ namespace myWebSocket
             // client->print("HTTP/1.1 403\r\n\r\n");
             // client->flush();
             client->stop();
+            delete client;
             return;
         }
 
@@ -725,6 +724,17 @@ namespace myWebSocket
 
         String serverKey = clientKey + String("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
         serverKey = generateServerKey(serverKey);
+
+        if (!serverKey.length())
+        {
+            if (this->fn)
+            {
+                this->fn(nullptr, ERROR_GENERATE_KEY, nullptr, 0);
+                client->stop();
+                delete client;
+                return;
+            }
+        }
 
         String response = "HTTP/1.1 101 Switching Protocols\r\n";
         response += "Connection: upgrade\r\n";
