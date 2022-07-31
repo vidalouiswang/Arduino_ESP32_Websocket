@@ -2,19 +2,19 @@
  * @file mywebsocket.h
  * @author Vida Wang (support@vida.wang)
  * @brief
- * 
+ *
  * This is a small websocket server/client and http server component.
  * Fast speed, no memory leak.
  * Designed for ESP32 work with offical framework arduino-esp32 version 2.0.3.
  * Websocket client/server don't support wss.
- * 
+ *
  * I'm not a native English speaker, so there may have many errors of words or grammar in comments, my apologies.
  *
  * 这是一个小型websocket客户端/服务器和http服务器组件。
  * 快速无内存泄漏。
  * 为ESP32设计，可与乐鑫官方arduino-esp32库2.0.3版本一同使用。
  * 不支持wss。
- * 
+ *
  * @version 1.0.5
  * @date 2022-07-30
  *
@@ -88,6 +88,7 @@ namespace myWebSocket
         BUFFER_ALLOC_FAILED = 0xf5,      // buffer allocate failed 缓冲区分配失败
         MAX_HEADER_LENGTH_EXCEED = 0xf4, // length of http header exceeded http头长度超出最大长度
         REACH_MAX_READ_TIMES = 0xae,     // reach maximum retry count 超过最大重试次数
+        ERROR_GENERATE_KEY = 0xac,       // error when generate key 生成密匙时发生错误
 
         // the following types for websocket data frame
         // 下面的类型是websocket数据帧类型
@@ -100,6 +101,78 @@ namespace myWebSocket
         TYPE_PONG = 0x0a,   // pong frame pong数据帧
         TYPE_UNKNOWN = 0xff // reserved 保留位
     } WebSocketEvents;
+
+    /**
+     * @brief add some functions to WiFiClient
+     * 给WiFiClient添加几个函数
+     */
+    class ExtendedWiFiClient : public WiFiClient
+    {
+    public:
+        inline ExtendedWiFiClient() {}
+        inline ExtendedWiFiClient(const WiFiClient &externalClient) : WiFiClient(externalClient) {}
+        inline ~ExtendedWiFiClient() {}
+
+        //
+
+        /**
+         * @brief this is for default method with "Transfer-Encoding: chunked"
+         * 默认的分段发送数据函数
+         *
+         * @param content data to send, pointer of class String object
+         * 需要发送的数据，一个String类的对象的指针
+         * @return bytes had been sent 已发送的数据的字节数
+         */
+        inline uint64_t send(String *content)
+        {
+            if (!content)
+                return 0;
+            if (!content->length())
+                return 0;
+            String *res = new String(content->c_str());
+            *res = String(res->length(), HEX) + "\r\n" + *res + "\r\n";
+            size_t len = 0;
+            try
+            {
+                len = this->print(*res);
+            }
+            catch (std::exception &e)
+            {
+            }
+
+            delete res;
+            return len;
+        }
+
+        /**
+         * @brief this is for default method with "Transfer-Encoding: chunked"
+         * 默认的分段发送数据函数
+         *
+         * @param content data to send, c string, c字符串
+         * 需要发送的数据，c字符串
+         * @return bytes had been sent 已发送的数据的字节数
+         */
+        inline uint64_t send(const char *content)
+        {
+            if (!content)
+                return 0;
+            String *res = new String(content);
+            auto len = this->send(res);
+            delete res;
+            return len;
+        }
+
+        /**
+         * @brief send zero block and close socket
+         * 发送结束数据块然后断开socket
+         */
+        inline void close()
+        {
+            this->print("0\r\n\r\n");
+            this->flush();
+            this->stop();
+        }
+    };
 
     /**
      * @brief websocket client message callback
@@ -158,7 +231,7 @@ namespace myWebSocket
          * @brief for basic tcp connection
          * 建立底层tcp连接
          */
-        WiFiClient *client = new WiFiClient();
+        ExtendedWiFiClient *client = new ExtendedWiFiClient();
 
         /**
          * @brief consecutive frame buffer
@@ -266,10 +339,21 @@ namespace myWebSocket
          * @brief a special constructor only for CombinedServer, to transfer client in
          * 一个特殊的构造函数仅被CombinedServer类的对象使用，用于传输socket连接
          *
-         * @param client an object of WiFiClient(socket) 一个WiFiClient的对象(套接字)
+         * @param client an object of ExtendedWiFiClient(socket) 一个ExtendedWiFiClient的对象(套接字)
          */
-        inline WebSocketClient(WiFiClient *client)
+        inline WebSocketClient(ExtendedWiFiClient *client)
         {
+            if (this->client)
+            {
+                try
+                {
+                    this->client->stop();
+                    delete this->client;
+                }
+                catch (std::exception &e)
+                {
+                }
+            }
             this->client = client;
             this->isFromServer = true;
             this->status = WS_CONNECTED;
@@ -559,78 +643,6 @@ namespace myWebSocket
         OTHERS
     } HttpMethod;
 
-    /**
-     * @brief add some functions to WiFiClient
-     * 给WiFiClient添加几个函数
-     */
-    class ExtendedWiFiClient : public WiFiClient
-    {
-    public:
-        inline ExtendedWiFiClient() {}
-        inline ExtendedWiFiClient(const WiFiClient &externalClient) : WiFiClient(externalClient) {}
-        inline ~ExtendedWiFiClient() {}
-
-        //
-
-        /**
-         * @brief this is for default method with "Transfer-Encoding: chunked"
-         * 默认的分段发送数据函数
-         *
-         * @param content data to send, pointer of class String object
-         * 需要发送的数据，一个String类的对象的指针
-         * @return bytes had been sent 已发送的数据的字节数
-         */
-        inline uint64_t send(String *content)
-        {
-            if (!content)
-                return 0;
-            if (!content->length())
-                return 0;
-            String *res = new String(content->c_str());
-            *res = String(res->length(), HEX) + "\r\n" + *res + "\r\n";
-            size_t len = 0;
-            try
-            {
-                len = this->print(*res);
-            }
-            catch (std::exception &e)
-            {
-            }
-
-            delete res;
-            return len;
-        }
-
-        /**
-         * @brief this is for default method with "Transfer-Encoding: chunked"
-         * 默认的分段发送数据函数
-         *
-         * @param content data to send, c string, c字符串
-         * 需要发送的数据，c字符串
-         * @return bytes had been sent 已发送的数据的字节数
-         */
-        inline uint64_t send(const char *content)
-        {
-            if (!content)
-                return 0;
-            String *res = new String(content);
-            auto len = this->send(res);
-            delete res;
-            return len;
-        }
-
-        /**
-         * @brief send zero block and close socket
-         * 发送结束数据块然后断开socket
-         */
-        inline void close()
-        {
-            this->print("0\r\n\r\n");
-            this->flush();
-            this->stop();
-        }
-    };
-
     // for universal websocket server message callback
     // 通用的websocket服务器消息回调函数
     typedef std::function<void(WebSocketClient *client, WebSocketEvents type, uint8_t *payload, uint64_t length)> WebSocketServerCallback;
@@ -749,7 +761,7 @@ namespace myWebSocket
          * @param request request header 请求头
          * @param index position of queue in websocket queue, websocket队列空余的位置
          */
-        void newWebSocketClientHandShanke(WiFiClient *client, String request, int index);
+        void newWebSocketClientHandShanke(ExtendedWiFiClient *client, String request, int index);
 
     public:
         inline CombinedServer() {}
@@ -825,7 +837,7 @@ namespace myWebSocket
         /**
          * @brief set public http post request handler
          * 设置公用的http post请求处理回调函数，这个功能我没用过
-         * 
+         *
          * @param fn callback 回调函数
          */
         inline void setPublicPostHandler(NonWebScoketCallback fn)
@@ -844,15 +856,15 @@ namespace myWebSocket
 
         /**
          * @brief start server 开启服务器
-         * 
+         *
          * @param port port of server 服务器端口
-         * @return true 
+         * @return true
          */
         bool begin(uint16_t port = 80);
 
         /**
          * @brief main loop of server 服务器主循环
-         * 
+         *
          */
         void loop();
     };
