@@ -1,4 +1,7 @@
 # Arduino ESP32 Websocket
+
+最新代码请转到 https://github.com/vidalouiswang/Abc/
+
 这个库是基于Espressif arduino-esp32 构建的.
 只在ESP32完成了测试，我不确定是否支持ESP8266。
 因为我觉得ESP32-WROOM-32模组和ESP8266-12F模组价格差不多，没有理由再使用ESP8266。
